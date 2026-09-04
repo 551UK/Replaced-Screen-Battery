@@ -237,7 +237,7 @@ static BOOL RSBIsSettingsIcon(id icon) {
     return [[RSBApplicationIdentifier(icon) lowercaseString] isEqualToString:@"com.apple.preferences"];
 }
 
-static id RSBRemovingOneSettingsBadge(id icon, id originalValue) {
+static id RSBRemovingPartsSettingsBadges(id icon, id originalValue) {
     if (!RSBEnabled || !RSBIsSettingsIcon(icon) || !originalValue) return originalValue;
 
     long long value = 0;
@@ -255,10 +255,10 @@ static id RSBRemovingOneSettingsBadge(id icon, id originalValue) {
         return originalValue;
     }
 
-    // The replaced-part warning contributes one badge. Subtract only that one,
-    // preserving any additional Settings alerts rather than hiding them all.
-    if (value <= 1) return nil;
-    value -= 1;
+    // The display and battery warnings can each contribute one Settings badge.
+    // Remove up to both contributions while keeping any count above two visible.
+    if (value <= 2) return nil;
+    value -= 2;
     return isString ? [NSString stringWithFormat:@"%lld", value] : @(value);
 }
 
@@ -348,7 +348,7 @@ static id RSBRemovingOneSettingsBadge(id icon, id originalValue) {
     // data source is reliable even when SpringBoardHome loads SBLeafIcon after
     // this tweak's constructor has already run.
     id badgeOwner = RSBIsSettingsIcon(self) ? self : icon;
-    return RSBRemovingOneSettingsBadge(badgeOwner, originalValue);
+    return RSBRemovingPartsSettingsBadges(badgeOwner, originalValue);
 }
 
 %end

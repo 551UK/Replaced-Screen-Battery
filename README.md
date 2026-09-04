@@ -8,8 +8,8 @@ It targets both places involved:
 - `Preferences`: removes SystemHealthUI specifiers and filters the visible
   "Important Display Message", "Important Battery Message", genuine-part, and
   "Unknown Part" rows.
-- `SpringBoard`: subtracts the one badge contributed by the parts warning from
-  the Settings app icon. Any additional Settings badge count is preserved.
+- `SpringBoard`: subtracts up to two badges contributed by the display and
+  battery warnings. Any Settings badge count above those two is preserved.
 - `Settings`: provides a master enable/disable switch and a direct link to the
   GitHub repository.
 
@@ -25,9 +25,8 @@ Settings-home warning or the Settings app badge.
 
 Replaced Screen & Battery expands that idea into a complete rootless iOS 15–16
 tweak. It removes the display and battery messages before Settings builds their
-rows, removes the About entries, subtracts the warning's single Settings badge
-without hiding unrelated badges, and provides a master switch and Respring
-button.
+rows, removes the About entries, subtracts the display and battery warning
+badges, and provides a master switch and Respring button.
 
 ## Compatibility
 

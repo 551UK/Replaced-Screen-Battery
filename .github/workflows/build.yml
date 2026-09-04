@@ -1,0 +1,79 @@
+name: Build rootless package
+
+permissions:
+  contents: write
+
+on:
+  push:
+  workflow_dispatch:
+
+jobs:
+  build:
+    # SpringBoard is arm64e. iOS 14+ requires the new arm64e ABI, which must be
+    # linked with Apple's ld64 from Xcode rather than the Linux Theos toolchain.
+    runs-on: macos-latest
+
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v6
+
+      - name: Check out Theos
+        uses: actions/checkout@v6
+        with:
+          repository: theos/theos
+          submodules: recursive
+          path: theos
+
+      - name: Check out patched iOS 16.5 SDK
+        uses: actions/checkout@v6
+        with:
+          repository: xybp888/iOS-SDKs
+          sparse-checkout: iPhoneOS16.5.sdk
+          path: theos/sdks
+
+      - name: Install build dependencies
+        run: brew install make xz ldid
+
+      - name: Show Apple toolchain
+        run: |
+          xcodebuild -version
+          xcrun --sdk iphoneos --show-sdk-version
+          clang --version
+
+      - name: Build rootless deb
+        env:
+          THEOS: ${{ github.workspace }}/theos
+        run: gmake clean package FINALPACKAGE=1
+
+      - name: Upload deb
+        uses: actions/upload-artifact@v7
+        with:
+          name: Replaced-Screen-Battery-rootless
+          path: packages/*.deb
+          if-no-files-found: error
+
+      - name: Remove older GitHub Releases
+        env:
+          GH_TOKEN: ${{ github.token }}
+          CURRENT_TAG: v1.0.12
+        run: |
+          gh api --paginate "repos/${{ github.repository }}/releases" \
+            --jq ".[] | select(.tag_name != \"${CURRENT_TAG}\") | .id" |
+          while IFS= read -r release_id; do
+            gh api --method DELETE \
+              "repos/${{ github.repository }}/releases/${release_id}"
+          done
+
+      - name: Publish GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: v1.0.12
+          name: Replaced Screen & Battery v1.0.12
+          body: |
+            Rootless Dopamine build for iOS 15–16.
+
+            Hides both replaced display and battery warnings and removes both Settings badge contributions. It also includes a master enable/disable switch, Respring button, and repository link in Settings.
+
+            v1.0.12 fixes the badge logic so a display warning and a battery warning are both removed instead of subtracting only one.
+          files: packages/*.deb
+          make_latest: true
