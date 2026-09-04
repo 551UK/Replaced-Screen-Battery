@@ -1,0 +1,13 @@
+Package: com.551.replacedscreenbattery
+Name: Replaced Screen & Battery
+Version: 1.0.11
+Architecture: iphoneos-arm64
+Description: Fully hides replaced screen/battery warnings and their Settings badge on iOS 15–16.
+ The original Replaced tweak is a 10-line SystemHealthUI hook that removes the
+ Parts and Service / Unknown Part entries from General > About. This tweak also
+ removes the main display and battery message and single Settings badge, and
+ includes a master switch and Respring button.
+Maintainer: 551
+Author: 551
+Section: Tweaks
+Depends: firmware (>= 15.0), mobilesubstrate, preferenceloader

@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<array>
+	<dict>
+		<key>cell</key>
+		<string>PSGroupCell</string>
+		<key>label</key>
+		<string>Warning Control</string>
+		<key>footerText</key>
+		<string>When enabled, the replaced display/battery message stays hidden and its one Settings badge is removed. Use Respring after changing this switch.</string>
+	</dict>
+	<dict>
+		<key>cell</key>
+		<string>PSSwitchCell</string>
+		<key>label</key>
+		<string>Hide Parts Warning</string>
+		<key>defaults</key>
+		<string>com.551.replacedscreenbattery</string>
+		<key>key</key>
+		<string>enabled</string>
+		<key>default</key>
+		<true/>
+		<key>PostNotification</key>
+		<string>com.551.replacedscreenbattery/preferences.changed</string>
+	</dict>
+	<dict>
+		<key>cell</key>
+		<string>PSButtonCell</string>
+		<key>label</key>
+		<string>Respring</string>
+		<key>action</key>
+		<string>respring</string>
+	</dict>
+	<dict>
+		<key>cell</key>
+		<string>PSGroupCell</string>
+	</dict>
+	<dict>
+		<key>cell</key>
+		<string>PSButtonCell</string>
+		<key>label</key>
+		<string>Open GitHub Repository</string>
+		<key>action</key>
+		<string>openGitHub</string>
+	</dict>
+	<dict>
+		<key>cell</key>
+		<string>PSGroupCell</string>
+		<key>footerText</key>
+		<string>Made by 551</string>
+	</dict>
+</array>
+</plist>
