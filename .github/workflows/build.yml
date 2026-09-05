@@ -55,7 +55,7 @@ jobs:
       - name: Remove older GitHub Releases
         env:
           GH_TOKEN: ${{ github.token }}
-          CURRENT_TAG: v1.0.12
+          CURRENT_TAG: v1.0.13
         run: |
           gh api --paginate "repos/${{ github.repository }}/releases" \
             --jq ".[] | select(.tag_name != \"${CURRENT_TAG}\") | .id" |
@@ -67,13 +67,13 @@ jobs:
       - name: Publish GitHub Release
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: v1.0.12
-          name: Replaced Screen & Battery v1.0.12
+          tag_name: v1.0.13
+          name: Replaced Screen & Battery v1.0.13
           body: |
             Rootless Dopamine build for iOS 15–16.
 
             Hides both replaced display and battery warnings and removes both Settings badge contributions. It also includes a master enable/disable switch, Respring button, and repository link in Settings.
 
-            v1.0.12 fixes the badge logic so a display warning and a battery warning are both removed instead of subtracting only one.
+            v1.0.13 adds a custom high-resolution icon to the tweak's Settings preference entry.
           files: packages/*.deb
           make_latest: true

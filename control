@@ -1,6 +1,6 @@
 Package: com.551.replacedscreenbattery
 Name: Replaced Screen & Battery
-Version: 1.0.12
+Version: 1.0.13
 Architecture: iphoneos-arm64
 Description: Fully hides replaced screen/battery warnings and their Settings badges on iOS 15–16.
  The original Replaced tweak is a 10-line SystemHealthUI hook that removes the
