@@ -17,6 +17,25 @@ jobs:
       - name: Check out source
         uses: actions/checkout@v6
 
+      - name: Normalize Settings icon size
+        run: |
+          set -euo pipefail
+          tmp="$(mktemp -d)"
+          trap 'rm -rf "$tmp"' EXIT
+          cp Resources/icon@3x.png "$tmp/source.png"
+
+          make_icon() {
+            inner="$1"
+            canvas="$2"
+            output="$3"
+            sips --resampleHeightWidth "$inner" "$inner" "$tmp/source.png" --out "$tmp/small.png" >/dev/null
+            sips --padToHeightWidth "$canvas" "$canvas" "$tmp/small.png" --out "$output" >/dev/null
+          }
+
+          make_icon 23 29 Resources/icon.png
+          make_icon 46 58 Resources/icon@2x.png
+          make_icon 69 87 Resources/icon@3x.png
+
       - name: Check out Theos
         uses: actions/checkout@v6
         with:
