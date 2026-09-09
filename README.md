@@ -3,6 +3,8 @@
 A rootless Dopamine tweak for iOS 15–16 that hides replaced-part warnings for
 the display and battery.
 
+If you need a build for a iOS version outside of this i can make it. DM ME.
+
 It targets both places involved:
 
 - `Preferences`: removes SystemHealthUI specifiers and filters the visible
