@@ -2,7 +2,7 @@
 
 Hides the annoying warnings in Settings after replacing your iPhone’s screen or battery.
 
-**Full support for iOS 15.2–18.5 on devices with working rootless tweak support.** Confirmed working on iOS 16.2 and iOS 18.2; not every version in this range has been tested but all should work. The tweak checks for iOS 18 and applies the extra fix if applicable, earlier iOS versions remain unaffected. 
+**Full support for iOS 15.2–18.5 on devices with working rootless tweak support.** Confirmed working on iOS 16.2 and iOS 18.2; not every version in this range has been tested but all should work. The tweak checks for iOS 18 and applies the extra fix if applicable, earlier iOS versions remain unaffected and the previous fixes remain untouched.
 
 - Hides “Important Display Message”, “Important Battery Message” and “Unknown Part” warnings.
 - Removes the Parts & Service History section from **Settings → General → About**, including the separate clickable menu on iOS 18.
