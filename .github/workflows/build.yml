@@ -83,14 +83,6 @@ jobs:
               "repos/${{ github.repository }}/releases/${release_id}"
           done
 
-      - name: Preserve supplied iOS 16 build
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: |
-          set -euo pipefail
-          gh api "repos/${{ github.repository }}/git/blobs/4bf7a4f1a3227e3a5edb9e8ab85eaa257feb7345" --jq '.content' | base64 --decode > 'iOS-16-ONLY.com.551.replacedscreenbattery_1.0.13_iphoneos-arm64.deb'
-          echo 'b92fa8a15deca743d63fd09ee11125fc3d2785aba647c5daa2d720c95f30a107  iOS-16-ONLY.com.551.replacedscreenbattery_1.0.13_iphoneos-arm64.deb' | shasum -a 256 --check
-
       - name: Publish GitHub Release
         uses: softprops/action-gh-release@v2
         with:
@@ -104,7 +96,5 @@ jobs:
             v1.0.14 targets the whole Parts & Service History section in General > About on iOS 18, including asynchronous refreshes and section spacing. The existing iOS 16 hooks are unchanged.
 
             Enable the tweak and respring after installation.
-          files: |
-            packages/*.deb
-            iOS-16-ONLY.com.551.replacedscreenbattery_1.0.13_iphoneos-arm64.deb
+          files: packages/*.deb
           make_latest: true
