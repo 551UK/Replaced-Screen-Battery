@@ -1,39 +1,16 @@
 # Replaced Screen & Battery
 
-A rootless tweak that hides replaced display/battery warnings and Settings badges.
-The existing iOS 15–16 behaviour is preserved. Version 1.0.14 adds iOS 18 hooks
-for the entire **Parts & Service History** section in **Settings → General → About**.
-The iOS 18.5 change still needs confirmation on a device with working tweak injection.
+Hides the annoying warnings in Settings after replacing your iPhone’s screen or battery.
 
-If you need a build for another iOS version, DM me.
+**Supports iOS 15.2–18.5 on devices with working rootless tweak support.** Confirmed working on iOS 16.2 and iOS 18.2; not every version in this range has been tested.
 
-It targets both places involved:
+- Hides “Important Display Message”, “Important Battery Message” and “Unknown Part” warnings.
+- Removes the Parts & Service History section from **Settings → General → About**, including the separate clickable menu on iOS 18.
+- Reduces the Settings app badge by up to two.
+- Includes an on/off switch and a Respring button in the tweak’s settings.
 
-- `Preferences`: removes SystemHealthUI specifiers and filters the visible
-  "Important Display Message", "Important Battery Message", genuine-part, and
-  "Unknown Part" rows.
-- `SpringBoard`: subtracts up to two badges contributed by the display and
-  battery warnings. Any Settings badge count above those two is preserved.
-- `Settings`: provides a master enable/disable switch and a direct link to the
-  GitHub repository.
+Install the latest deb from [Releases](https://github.com/551UK/Replaced-Screen-Battery/releases/latest), then respring. Use the switch in Settings to turn it on or off, and respring after changing it.
 
-This is a cosmetic tweak. It does not modify, pair, or falsify hardware data.
-Disabling or uninstalling the tweak restores the original warnings.
+This only hides what Settings shows. It does not repair or pair replacement parts, or change the phone’s repair history. Turning the tweak off or uninstalling it brings the original information back.
 
-
-### iOS 18 change
-
-iOS 18 can insert the section during an asynchronous refresh, bypassing the
-older cached-specifier getter. The new hooks return an empty section from
-`reloadCurrentSystemHealthInfoSpecifiers` and pass an empty list through
-`_updateSpecifiers:specifierToInsertAfter:withUpdates:`. The original update
-removes both `PARTS_AND_SERVICE_GROUP` and `MAIN_PARTS_AND_SERVICE`, so no
-empty section is left behind. Apple's update/callback flow is retained.
-
-These extra hooks only install on iOS 18 when both methods exist. Turning the
-master switch off passes the original arguments and results through; use Respring
-after changing it. This package requires an environment that can load rootless
-tweaks into Settings; installing a deb alone does not provide that capability.
-
-Implementation reference: [iOS 18.2 SystemHealthUI decompilation](https://github.com/EthanArbuckle/iPhone17-1_18.2_22C152_Restore/blob/main/System/Library/PrivateFrameworks/CoreRepairUI.framework/SystemHealthUI.m).
-This establishes the iOS 18 refresh path; it is not an on-device iOS 18.5 test.
+**Made by 551.**
