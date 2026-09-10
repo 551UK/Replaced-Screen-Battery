@@ -5,7 +5,7 @@ Architecture: iphoneos-arm64
 Description: Hides replaced screen/battery warnings and Settings badges, with added iOS 18 Parts & Service History support.
  Keeps the existing iOS 15-16 behaviour and adds iOS 18 hooks to remove the
  entire Parts & Service History section in General > About, including its gap.
- Includes a master switch and Respring button. iOS 18.5 device testing needed.
+ Includes a master switch and Respring button.
 Maintainer: 551
 Author: 551
 Section: Tweaks
