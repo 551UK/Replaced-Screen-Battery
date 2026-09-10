@@ -8,7 +8,7 @@
 		<key>label</key>
 		<string>Warning Control</string>
 		<key>footerText</key>
-		<string>When enabled, the replaced display/battery message stays hidden and its one Settings badge is removed. Use Respring after changing this switch.</string>
+		<string>When enabled, replaced display/battery warnings and up to two Settings badges are hidden. On iOS 18, this also hides the whole Parts &amp; Service History section in General &gt; About. Use Respring after changing this switch.</string>
 	</dict>
 	<dict>
 		<key>cell</key>

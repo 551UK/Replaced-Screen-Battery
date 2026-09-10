@@ -6,7 +6,7 @@
 #import <notify.h>
 
 // Replaced Screen & Battery
-// iOS 15-16, rootless Dopamine
+// iOS 15-16, with additional iOS 18 Parts & Service History hooks.
 
 static BOOL RSBEnabled = YES;
 static BOOL RSBSystemHealthHooksInitialized = NO;
@@ -286,6 +286,27 @@ static id RSBRemovingPartsSettingsBadges(id icon, id originalValue) {
 %end
 
 
+// iOS 18 rebuilds the About group asynchronously, bypassing the cached getter
+// hooked above. Cover both its producer and the final update transaction.
+// Keep the original transaction: it removes PARTS_AND_SERVICE_GROUP and
+// MAIN_PARTS_AND_SERVICE, updates the cache, and preserves Apple's callbacks.
+%group SystemHealthIOS18Hooks
+
+%hook SystemHealthUI
+
+- (id)reloadCurrentSystemHealthInfoSpecifiers {
+    if (!RSBEnabled) return %orig;
+    return @[];
+}
+
+- (void)_updateSpecifiers:(id)specifiers specifierToInsertAfter:(id)anchor withUpdates:(id)updates {
+    %orig(RSBEnabled ? @[] : specifiers, anchor, updates);
+}
+
+%end
+
+%end
+
 %group FollowUpHooks
 
 %hook FLFollowUpItem
@@ -363,6 +384,15 @@ static void RSBInitializeSystemHealthHooks(void) {
         if (RSBSystemHealthHooksInitialized || !objc_getClass("SystemHealthUI")) return;
         RSBSystemHealthHooksInitialized = YES;
         %init(SystemHealthHooks);
+
+        // Do not install these extra hooks on iOS 16. Require both methods
+        // before installing, rather than adding guessed selectors to a class.
+        Class healthClass = objc_getClass("SystemHealthUI");
+        if (NSProcessInfo.processInfo.operatingSystemVersion.majorVersion == 18 &&
+            class_getInstanceMethod(healthClass, @selector(reloadCurrentSystemHealthInfoSpecifiers)) &&
+            class_getInstanceMethod(healthClass, @selector(_updateSpecifiers:specifierToInsertAfter:withUpdates:))) {
+            %init(SystemHealthIOS18Hooks);
+        }
     }
 }
 

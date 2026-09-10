@@ -74,7 +74,7 @@ jobs:
       - name: Remove older GitHub Releases
         env:
           GH_TOKEN: ${{ github.token }}
-          CURRENT_TAG: v1.0.13
+          CURRENT_TAG: v1.0.14
         run: |
           gh api --paginate "repos/${{ github.repository }}/releases" \
             --jq ".[] | select(.tag_name != \"${CURRENT_TAG}\") | .id" |
@@ -86,13 +86,15 @@ jobs:
       - name: Publish GitHub Release
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: v1.0.13
-          name: Replaced Screen & Battery v1.0.13
+          tag_name: v1.0.14
+          name: Replaced Screen & Battery v1.0.14
           body: |
-            Rootless Dopamine build for iOS 15–16.
+            Rootless build retaining iOS 15–16 support, with additional iOS 18 hooks.
 
             Hides both replaced display and battery warnings and removes both Settings badge contributions. It also includes a master enable/disable switch, Respring button, and repository link in Settings.
 
-            v1.0.13 adds a custom high-resolution icon to the tweak's Settings preference entry.
+            v1.0.14 targets the whole Parts & Service History section in General > About on iOS 18, including asynchronous refreshes and section spacing. The existing iOS 16 hooks are unchanged.
+
+            iOS 18.5 still needs on-device confirmation with working tweak injection. Enable the tweak and respring after installation.
           files: packages/*.deb
           make_latest: true
