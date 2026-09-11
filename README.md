@@ -6,7 +6,7 @@ Hides the annoying warnings in Settings after replacing your iPhone’s screen o
 
 - Hides “Important Display Message”, “Important Battery Message” and “Unknown Part” warnings.
 - Removes the Parts & Service History section from **Settings → General → About**, including the separate clickable menu on iOS 18.
-- Removes the About tab in older iOS versions.
+- Removes the warning in the About tab in older iOS versions.
 - Reduces the Settings app badge by up to two.
 - Includes an on/off switch and a Respring button in the tweak’s settings.
 
