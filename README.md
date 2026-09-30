@@ -2,6 +2,20 @@
 
 Hides the annoying warnings in Settings after replacing your iPhone’s screen or battery.
 
+EDIT: I have added battery health to the tweak, this returns battery health by calculating Full Charge Capacity ÷ Design Capacity x 100.
+
+For example, if the BMS reports:
+- Design Capacity = 4,323 mAh
+- Full Charge Capacity = 4,323 mAh
+- 
+then:
+4323 ÷ 4323 × 100 = 100%
+  
+If, after some wear, Full Charge Capacity falls to 4,100 mAh:
+4100 ÷ 4323 × 100 = 94.84%
+
+It will go down from 100,99,98... 
+
 **Full support for iOS 15.2–18.5 on devices with working rootless tweak support.** Confirmed working on iOS 16.2 and iOS 18.2; not every version in this range has been tested but all should work. The tweak checks for iOS 18 and applies the extra fix if applicable, earlier iOS versions remain unaffected and the previous fixes remain untouched.
 
 - Hides “Important Display Message”, “Important Battery Message” and “Unknown Part” warnings.
