@@ -1,8 +1,8 @@
 Package: com.551.replacedscreenbattery
 Name: Replaced Screen & Battery
-Version: 1.0.14
+Version: 1.0.15
 Architecture: iphoneos-arm64
-Description: Hides replaced screen/battery warnings and Settings badges, with added iOS 18 Parts & Service History support.
+Description: Hides replaced screen/battery warnings while keeping Battery Health available and showing BMS-reported maximum capacity for unverified replacement batteries.
  Keeps the existing iOS 15-16 behaviour and adds iOS 18 hooks to remove the
  entire Parts & Service History section in General > About, including its gap.
  Includes a master switch and Respring button.

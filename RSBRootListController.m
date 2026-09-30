@@ -55,7 +55,7 @@ static void RSBExitSettingsSoon(void) {
 
         PSSpecifier *warningGroup = [PSSpecifier groupSpecifierWithName:@"Warning Control"];
         [warningGroup setProperty:
-            @"When enabled, the replaced display and battery messages stay hidden and their Settings badges are removed. Use Respring after changing this switch."
+            @"When enabled, replaced display and battery messages stay hidden, Battery Health & Charging remains visible, and an unverified replacement battery can show its BMS-reported Maximum Capacity. Use Respring after changing this switch."
                            forKey:@"footerText"];
         [items addObject:warningGroup];
 

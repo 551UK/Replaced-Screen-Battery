@@ -74,7 +74,7 @@ jobs:
       - name: Remove older GitHub Releases
         env:
           GH_TOKEN: ${{ github.token }}
-          CURRENT_TAG: v1.0.14
+          CURRENT_TAG: v1.0.15
         run: |
           gh api --paginate "repos/${{ github.repository }}/releases" \
             --jq ".[] | select(.tag_name != \"${CURRENT_TAG}\") | .id" |
@@ -86,15 +86,15 @@ jobs:
       - name: Publish GitHub Release
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: v1.0.14
-          name: Replaced Screen & Battery v1.0.14
+          tag_name: v1.0.15
+          name: Replaced Screen & Battery v1.0.15
           body: |
-            Rootless build retaining iOS 15–16 support, with additional iOS 18 hooks.
+            Rootless build for iOS 15.2–18.5.
 
-            Hides both replaced display and battery warnings and removes both Settings badge contributions. It also includes a master enable/disable switch, Respring button, and repository link in Settings.
+            Hides replaced display/battery warnings and Settings badge contributions while keeping Battery Health & Charging accessible.
 
-            v1.0.14 targets the whole Parts & Service History section in General > About on iOS 18, including asynchronous refreshes and section spacing. The existing iOS 16 hooks are unchanged.
+            v1.0.15 fixes the replacement-battery warning filter removing the Battery Health & Charging row. For unverified replacement batteries, Maximum Capacity is now shown from the installed BMS/gas-gauge data using Full Charge Capacity / Design Capacity, capped at 100% for display. Genuine/verification status is not changed.
 
-            Enable the tweak and respring after installation.
+            The existing iOS 18 Parts & Service History hooks remain included. Enable the tweak and respring after installation.
           files: packages/*.deb
           make_latest: true

@@ -4,6 +4,8 @@
 #import <objc/runtime.h>
 #import <dlfcn.h>
 #import <notify.h>
+#import <mach/mach.h>
+#import <math.h>
 
 // Replaced Screen & Battery
 // iOS 15-16, with additional iOS 18 Parts & Service History hooks.
@@ -11,11 +13,13 @@
 static BOOL RSBEnabled = YES;
 static BOOL RSBSystemHealthHooksInitialized = NO;
 static BOOL RSBFollowUpHooksInitialized = NO;
+static BOOL RSBBatteryUIHooksInitialized = NO;
 
 static void RSBInitializeSystemHealthHooks(void);
 static void RSBLoadAndHookSystemHealthFramework(void);
 static void RSBInitializeFollowUpHooks(void);
 static void RSBLoadAndHookFollowUpFramework(void);
+static void RSBInitializeBatteryUIHooks(void);
 
 static void RSBLoadPreferences(void) {
     @autoreleasepool {
@@ -32,6 +36,142 @@ static void RSBPreferencesChanged(CFNotificationCenterRef __unused center,
                                   const void * __unused object,
                                   CFDictionaryRef __unused userInfo) {
     RSBLoadPreferences();
+}
+
+
+typedef CFMutableDictionaryRef (*RSBIOServiceMatchingFn)(const char *);
+typedef mach_port_t (*RSBIOServiceGetMatchingServiceFn)(mach_port_t, CFDictionaryRef);
+typedef kern_return_t (*RSBIORegistryEntryCreateCFPropertiesFn)(
+    mach_port_t, CFMutableDictionaryRef *, CFAllocatorRef, UInt32);
+typedef kern_return_t (*RSBIOObjectReleaseFn)(mach_port_t);
+
+static RSBIOServiceMatchingFn RSBIOServiceMatching = NULL;
+static RSBIOServiceGetMatchingServiceFn RSBIOServiceGetMatchingService = NULL;
+static RSBIORegistryEntryCreateCFPropertiesFn RSBIORegistryEntryCreateCFProperties = NULL;
+static RSBIOObjectReleaseFn RSBIOObjectRelease = NULL;
+
+static void RSBInitializeIOKitFunctions(void) {
+    static dispatch_once_t onceToken;
+    dispatch_once(&onceToken, ^{
+        void *handle = dlopen("/System/Library/Frameworks/IOKit.framework/IOKit",
+                             RTLD_LAZY | RTLD_LOCAL);
+        if (!handle) return;
+
+        RSBIOServiceMatching = (RSBIOServiceMatchingFn)dlsym(handle, "IOServiceMatching");
+        RSBIOServiceGetMatchingService =
+            (RSBIOServiceGetMatchingServiceFn)dlsym(handle, "IOServiceGetMatchingService");
+        RSBIORegistryEntryCreateCFProperties =
+            (RSBIORegistryEntryCreateCFPropertiesFn)dlsym(handle, "IORegistryEntryCreateCFProperties");
+        RSBIOObjectRelease = (RSBIOObjectReleaseFn)dlsym(handle, "IOObjectRelease");
+    });
+}
+
+// Read the same capacity properties Battman uses, but directly from the
+// installed battery's power-source registry entry. Nothing is written to the
+// BMS and no genuine/paired status is changed.
+static NSDictionary *RSBCopyBatteryPowerProperties(void) {
+    RSBInitializeIOKitFunctions();
+    if (!RSBIOServiceMatching ||
+        !RSBIOServiceGetMatchingService ||
+        !RSBIORegistryEntryCreateCFProperties) {
+        return nil;
+    }
+
+    static const char *serviceNames[] = {
+        "IOPMPowerSource",
+        "AppleSmartBattery"
+    };
+
+    for (NSUInteger index = 0;
+         index < sizeof(serviceNames) / sizeof(serviceNames[0]);
+         index++) {
+        CFMutableDictionaryRef matching = RSBIOServiceMatching(serviceNames[index]);
+        if (!matching) continue;
+
+        mach_port_t service =
+            RSBIOServiceGetMatchingService(MACH_PORT_NULL, matching);
+        if (service == MACH_PORT_NULL) continue;
+
+        CFMutableDictionaryRef properties = NULL;
+        kern_return_t result =
+            RSBIORegistryEntryCreateCFProperties(service,
+                                                 &properties,
+                                                 kCFAllocatorDefault,
+                                                 0);
+        if (RSBIOObjectRelease) RSBIOObjectRelease(service);
+
+        if (result == KERN_SUCCESS && properties) {
+            return CFBridgingRelease(properties);
+        }
+        if (properties) CFRelease(properties);
+    }
+
+    return nil;
+}
+
+static NSInteger RSBReplacementBatteryHealthPercent(void) {
+    NSDictionary *properties = RSBCopyBatteryPowerProperties();
+    NSNumber *fullCapacity = properties[@"AppleRawMaxCapacity"];
+    NSNumber *designCapacity = properties[@"DesignCapacity"];
+
+    if (![fullCapacity isKindOfClass:NSNumber.class] ||
+        ![designCapacity isKindOfClass:NSNumber.class]) {
+        return -1;
+    }
+
+    double full = fullCapacity.doubleValue;
+    double design = designCapacity.doubleValue;
+    if (!isfinite(full) || !isfinite(design) || full <= 0.0 || design <= 0.0) {
+        return -1;
+    }
+
+    // Match Battman's health calculation:
+    // 100 * Full Charge Capacity / Design Capacity.
+    double health = 100.0 * full / design;
+    if (!isfinite(health) || health < 0.0 || health > 200.0) {
+        return -1;
+    }
+
+    NSInteger roundedHealth = (NSInteger)llround(health);
+    // Apple's Battery Health UI does not display values above 100%.
+    if (roundedHealth > 100) roundedHealth = 100;
+    if (roundedHealth < 0) roundedHealth = 0;
+    return roundedHealth;
+}
+
+static NSString *RSBReplacementBatteryHealthString(void) {
+    NSInteger health = RSBReplacementBatteryHealthPercent();
+    if (health < 0) return nil;
+
+    NSNumberFormatter *formatter = [[NSNumberFormatter alloc] init];
+    formatter.numberStyle = NSNumberFormatterPercentStyle;
+    formatter.maximumFractionDigits = 0;
+    formatter.minimumFractionDigits = 0;
+    return [formatter stringFromNumber:@((double)health / 100.0)];
+}
+
+static BOOL RSBInstalledBatteryIsUnverified(void) {
+    Class resourceClass = objc_getClass("BatteryUIResourceClass");
+    if (!resourceClass) return NO;
+
+    SEL unverifiedSelector = NSSelectorFromString(@"isBatteryUnverified");
+    if ([resourceClass respondsToSelector:unverifiedSelector]) {
+        BOOL (*implementation)(id, SEL) =
+            (BOOL (*)(id, SEL))objc_msgSend;
+        return implementation(resourceClass, unverifiedSelector);
+    }
+
+    // Older BatteryUsageUI versions expose only genuineBatteryStatus.
+    // Apple's value 1 is the normal/genuine state; replacement/unverified
+    // batteries use another state.
+    SEL statusSelector = NSSelectorFromString(@"genuineBatteryStatus");
+    if ([resourceClass respondsToSelector:statusSelector]) {
+        NSInteger (*implementation)(id, SEL) =
+            (NSInteger (*)(id, SEL))objc_msgSend;
+        return implementation(resourceClass, statusSelector) != 1;
+    }
+
+    return NO;
 }
 
 static BOOL RSBStringContainsWarning(NSString *value) {
@@ -74,6 +214,57 @@ static id RSBCallObjectSelector(id object, SEL selector) {
     if (!object || ![object respondsToSelector:selector]) return nil;
     id (*implementation)(id, SEL) = (id (*)(id, SEL))[object methodForSelector:selector];
     return implementation ? implementation(object, selector) : nil;
+}
+
+
+static BOOL RSBIsBatteryHealthSpecifier(id specifier) {
+    if (!specifier) return NO;
+
+    id identifier = RSBCallObjectSelector(specifier, NSSelectorFromString(@"identifier"));
+    if ([identifier isKindOfClass:NSString.class]) {
+        NSString *upper = [(NSString *)identifier uppercaseString];
+        if ([upper isEqualToString:@"BATTERY_HEALTH_TITLE"] ||
+            [upper isEqualToString:@"BATTERY_HEALTH"] ||
+            [upper isEqualToString:@"BATTERY_HEALTH_ID"]) {
+            return YES;
+        }
+    }
+
+    id name = RSBCallObjectSelector(specifier, NSSelectorFromString(@"name"));
+    if ([name isKindOfClass:NSString.class]) {
+        NSString *lower = [(NSString *)name lowercaseString];
+        if ([lower containsString:@"battery health"]) return YES;
+    }
+
+    return NO;
+}
+
+static BOOL RSBViewContainsBatteryHealthTitle(UIView *view) {
+    if ([view isKindOfClass:UILabel.class]) {
+        NSString *text = ((UILabel *)view).text.lowercaseString;
+        if ([text containsString:@"battery health"]) return YES;
+    }
+
+    for (UIView *subview in view.subviews) {
+        if (RSBViewContainsBatteryHealthTitle(subview)) return YES;
+    }
+    return NO;
+}
+
+static void RSBClearWarningLabelsInView(UIView *view) {
+    if ([view isKindOfClass:UILabel.class]) {
+        UILabel *label = (UILabel *)view;
+        if (RSBStringContainsWarning(label.text)) {
+            label.text = @"";
+            label.attributedText = [[NSAttributedString alloc] initWithString:@""];
+            label.hidden = YES;
+            return;
+        }
+    }
+
+    for (UIView *subview in view.subviews) {
+        RSBClearWarningLabelsInView(subview);
+    }
 }
 
 static BOOL RSBObjectContainsWarning(id object, NSUInteger depth) {
@@ -187,6 +378,33 @@ static char RSBRemovalScheduledKey;
 
 static void RSBHideWarningCellIfNeeded(UITableViewCell *cell) {
     if (!RSBEnabled || !cell || !RSBViewContainsWarning(cell)) return;
+
+    UITableView *tableView = RSBTableViewContainingView(cell);
+    NSIndexPath *indexPath = [tableView indexPathForCell:cell];
+    id controller = tableView.delegate;
+    SEL specifierSelector = NSSelectorFromString(@"specifierAtIndexPath:");
+    SEL removeSelector = NSSelectorFromString(@"removeSpecifier:animated:");
+
+    id specifier = nil;
+    if (tableView && indexPath && controller &&
+        [controller respondsToSelector:specifierSelector]) {
+        specifier =
+            RSBCallObjectSelectorWithObject(controller, specifierSelector, indexPath);
+    }
+
+    // BatteryUsageUI puts the "unable to verify" text inside the Battery
+    // Health & Charging navigation cell. The old generic warning filter saw
+    // that text and removed the whole navigation row. Keep the real row and
+    // strip only its warning label.
+    if (RSBIsBatteryHealthSpecifier(specifier) ||
+        RSBViewContainsBatteryHealthTitle(cell)) {
+        RSBClearWarningLabelsInView(cell);
+        cell.hidden = NO;
+        cell.alpha = 1.0;
+        cell.userInteractionEnabled = YES;
+        return;
+    }
+
     cell.hidden = YES;
     cell.alpha = 0.0;
     cell.userInteractionEnabled = NO;
@@ -198,17 +416,12 @@ static void RSBHideWarningCellIfNeeded(UITableViewCell *cell) {
     objc_setAssociatedObject(cell, &RSBRemovalScheduledKey, @YES,
                              OBJC_ASSOCIATION_RETAIN_NONATOMIC);
 
-    UITableView *tableView = RSBTableViewContainingView(cell);
-    NSIndexPath *indexPath = [tableView indexPathForCell:cell];
-    id controller = tableView.delegate;
-    SEL specifierSelector = NSSelectorFromString(@"specifierAtIndexPath:");
-    SEL removeSelector = NSSelectorFromString(@"removeSpecifier:animated:");
     if (!tableView || !indexPath || !controller ||
         ![controller respondsToSelector:specifierSelector] ||
-        ![controller respondsToSelector:removeSelector]) return;
-
-    id specifier = RSBCallObjectSelectorWithObject(controller, specifierSelector, indexPath);
-    if (!specifier) return;
+        ![controller respondsToSelector:removeSelector] ||
+        !specifier) {
+        return;
+    }
 
     dispatch_async(dispatch_get_main_queue(), ^{
         if (!RSBEnabled) return;
@@ -345,6 +558,25 @@ static id RSBRemovingPartsSettingsBadges(id icon, id originalValue) {
 %end
 
 
+%group BatteryUIHooks
+
+%hook BatteryHealthUIController
+
+// Apple's row remains Apple's row. For an unverified replacement battery,
+// replace only the unavailable percentage with the capacity reported by the
+// installed battery's BMS/gas gauge.
+- (id)getChargeCapacityRemaining {
+    if (!RSBEnabled || !RSBInstalledBatteryIsUnverified()) return %orig;
+
+    NSString *health = RSBReplacementBatteryHealthString();
+    return health ?: %orig;
+}
+
+%end
+
+%end
+
+
 %group PreferencesHooks
 
 %hook UITableViewCell
@@ -425,6 +657,22 @@ static void RSBLoadAndHookFollowUpFramework(void) {
     RSBInitializeFollowUpHooks();
 }
 
+static void RSBInitializeBatteryUIHooks(void) {
+    if (RSBBatteryUIHooksInitialized ||
+        !objc_getClass("BatteryHealthUIController")) {
+        return;
+    }
+
+    @synchronized(NSObject.class) {
+        if (RSBBatteryUIHooksInitialized ||
+            !objc_getClass("BatteryHealthUIController")) {
+            return;
+        }
+        RSBBatteryUIHooksInitialized = YES;
+        %init(BatteryUIHooks);
+    }
+}
+
 
 %ctor {
     @autoreleasepool {
@@ -440,8 +688,9 @@ static void RSBLoadAndHookFollowUpFramework(void) {
             %init(PreferencesHooks);
             RSBLoadAndHookFollowUpFramework();
             RSBLoadAndHookSystemHealthFramework();
+            RSBInitializeBatteryUIHooks();
 
-            // SystemHealthUI is loaded lazily on some iOS 16 builds. Install
+            // SystemHealthUI and BatteryUsageUI are loaded lazily on some builds. Install
             // its hooks synchronously as soon as NSBundle finishes loading the
             // framework, before Settings asks it to create the warning row.
             [[NSNotificationCenter defaultCenter]
@@ -451,6 +700,7 @@ static void RSBLoadAndHookFollowUpFramework(void) {
                         usingBlock:^(__unused NSNotification *notification) {
                             RSBInitializeFollowUpHooks();
                             RSBInitializeSystemHealthHooks();
+                            RSBInitializeBatteryUIHooks();
                         }];
         } else if ([bundleIdentifier isEqualToString:@"com.apple.springboard"]) {
             %init(SpringBoardHooks);
