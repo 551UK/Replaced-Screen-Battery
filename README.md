@@ -7,14 +7,14 @@ EDIT: I have added battery health to the tweak, this returns battery health by c
 For example, if the BMS reports:
 - Design Capacity = 4,323 mAh
 - Full Charge Capacity = 4,323 mAh
-- 
+  
 then:
 4323 ÷ 4323 × 100 = 100%
   
 If, after some wear, Full Charge Capacity falls to 4,100 mAh:
 4100 ÷ 4323 × 100 = 94.84%
 
-It will go down from 100,99,98... 
+It will go down from 100,99,98... like normal battery health... however if you have an extended battery with more MAH it will show over 100 percent but the tweak will cap it at 100 percent. 
 
 **Full support for iOS 15.2–18.5 on devices with working rootless tweak support.** Confirmed working on iOS 16.2 and iOS 18.2; not every version in this range has been tested but all should work. The tweak checks for iOS 18 and applies the extra fix if applicable, earlier iOS versions remain unaffected and the previous fixes remain untouched.
 
