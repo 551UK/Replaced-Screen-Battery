@@ -1,0 +1,27 @@
+name: Build 551UK USB Charge Control Native App
+on:
+  push:
+    branches:
+      - temporary-usb-charge-native-app-build
+  workflow_dispatch:
+jobs:
+  build-ios-app:
+    runs-on: macos-15
+    steps:
+      - uses: actions/checkout@v4
+      - name: Compile native UIKit iPhone app
+        shell: bash
+        run: |
+          set -euo pipefail
+          SDK="$(xcrun --sdk iphoneos --show-sdk-path)"
+          mkdir -p build
+          xcrun --sdk iphoneos clang             -arch arm64             -isysroot "$SDK"             -miphoneos-version-min=16.0             -fobjc-arc -O2             ios-usb-charge-control/USBChargeControl.m             -framework UIKit -framework Foundation             -o build/USBChargeControl
+          file build/USBChargeControl
+          xcrun otool -hv build/USBChargeControl
+          shasum -a 256 build/USBChargeControl
+      - name: Upload iOS app binary
+        uses: actions/upload-artifact@v4
+        with:
+          name: USBChargeControl-arm64
+          path: build/USBChargeControl
+          retention-days: 7
