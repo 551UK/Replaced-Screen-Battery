@@ -42,7 +42,7 @@ static NSString *watts(NSDictionary*d,NSString*k,NSInteger divide) {
 static UIColor *rgb(CGFloat r,CGFloat g,CGFloat b){return [UIColor colorWithRed:r green:g blue:b alpha:1];}
 @interface ChargeViewController:UIViewController
 @property(nonatomic,strong)UIScrollView *scroll;
-@property(nonatomic,strong)UILabel *statusLabel,*chargerLabel,*inputLabel,*batteryLabel,*usbLabel,*effectiveLabel,*capLabel,*estimateLabel,*batteryPctLabel;
+@property(nonatomic,strong)UILabel *statusLabel,*chargerLabel,*inputLabel,*batteryLabel,*usbLabel,*effectiveLabel,*capLabel,*batteryPctLabel;
 @property(nonatomic,strong)UISlider *currentSlider;
 @property(nonatomic,strong)UISwitch *enableSwitch;
 @property(nonatomic,strong)UITextView *logView;
@@ -77,9 +77,9 @@ static UIColor *rgb(CGFloat r,CGFloat g,CGFloat b){return [UIColor colorWithRed:
     self.statusLabel=[self makeLabel:@"Connecting to charging controller…" font:13 y:107 color:cyan];
     self.statusLabel.frame=CGRectMake(18,107,330,48);
     [self makeLabel:@"CHARGING DATA" font:13 y:161 color:cyan];
-    self.chargerLabel=[self makeLabel:@"Charger reported: —" font:16 y:193 color:white];
-    self.inputLabel=[self makeLabel:@"Live system input: —" font:20 y:230 color:white];
-    self.batteryLabel=[self makeLabel:@"Battery charging power: —" font:16 y:270 color:white];
+    self.chargerLabel=[self makeLabel:@"Charger Rating: —" font:16 y:193 color:white];
+    self.inputLabel=[self makeLabel:@"Input Rail: — W  |  — mA" font:18 y:230 color:white];
+    self.batteryLabel=[self makeLabel:@"Battery: — W  |  — mA" font:18 y:270 color:white];
     self.batteryPctLabel=[self makeLabel:@"Battery: —" font:15 y:306 color:mute];
     self.usbLabel=[self makeLabel:@"USB negotiated voltage: —" font:15 y:342 color:mute];
     self.effectiveLabel=[self makeLabel:@"Current USB limit: —" font:15 y:377 color:white];
@@ -91,20 +91,19 @@ static UIColor *rgb(CGFloat r,CGFloat g,CGFloat b){return [UIColor colorWithRed:
     [self.currentSlider addTarget:self action:@selector(sliderDone:) forControlEvents:UIControlEventTouchUpInside|UIControlEventTouchUpOutside];
     [self.scroll addSubview:self.currentSlider];
     [self makeLabel:@"500mA                             2400mA" font:12 y:542 color:mute];
-    self.estimateLabel=[self makeLabel:@"Estimated max at USB voltage: —" font:14 y:573 color:white];
-    [self makeLabel:@"Enable current limit" font:17 y:618 color:white];
-    self.enableSwitch=[[UISwitch alloc]initWithFrame:CGRectMake(274,624,55,36)];
+    [self makeLabel:@"Enable current limit" font:17 y:574 color:white];
+    self.enableSwitch=[[UISwitch alloc]initWithFrame:CGRectMake(274,580,55,36)];
     [self.enableSwitch addTarget:self action:@selector(toggleChanged:) forControlEvents:UIControlEventValueChanged];
     [self.scroll addSubview:self.enableSwitch];
-    self.applyButton=[self makeButton:@"Apply selected current" y:676 color:rgb(.08,.45,.77) action:@selector(applyTapped:)];
-    self.restoreButton=[self makeButton:@"Restore normal charging" y:738 color:rgb(.39,.20,.23) action:@selector(restoreTapped:)];
-    self.logButton=[self makeButton:@"Refresh & copy diagnostics" y:808 color:rgb(.17,.22,.34) action:@selector(copyLog:)];
-    [self makeLabel:@"Live input is internal iOS telemetry, not a wall-plug wattmeter. Estimated maximum is voltage × selected current; not measured watts. Does not throttle CPU or GPU." font:12 y:869 color:mute].frame=CGRectMake(18,869,330,85);
-    self.logView=[[UITextView alloc]initWithFrame:CGRectMake(18,973,330,180)];
+    self.applyButton=[self makeButton:@"Apply selected current" y:635 color:rgb(.08,.45,.77) action:@selector(applyTapped:)];
+    self.restoreButton=[self makeButton:@"Restore normal charging" y:697 color:rgb(.39,.20,.23) action:@selector(restoreTapped:)];
+    self.logButton=[self makeButton:@"Refresh & copy diagnostics" y:767 color:rgb(.17,.22,.34) action:@selector(copyLog:)];
+    [self makeLabel:@"Input Rail and Battery use iOS telemetry; readings may lag. Charger Rating is reported by iOS, not measured at the wall. No CPU/GPU throttling." font:12 y:829 color:mute].frame=CGRectMake(18,829,330,85);
+    self.logView=[[UITextView alloc]initWithFrame:CGRectMake(18,922,330,180)];
     self.logView.backgroundColor=rgb(.095,.13,.20);self.logView.textColor=white;
     self.logView.font=[UIFont monospacedSystemFontOfSize:10 weight:UIFontWeightRegular];self.logView.editable=NO;
     self.logView.layer.cornerRadius=12;self.logView.text=@"Diagnostics will appear here.";
-    [self.scroll addSubview:self.logView];self.scroll.contentSize=CGSizeMake(365,1175);
+    [self.scroll addSubview:self.logView];self.scroll.contentSize=CGSizeMake(365,1130);
     NSInteger saved=[[NSUserDefaults standardUserDefaults]integerForKey:@"selectedCurrent"];
     if(saved>=500&&saved<=2400)self.currentSlider.value=saved;
     [self sliderChanged:self.currentSlider];[self refresh:nil];
@@ -118,23 +117,18 @@ static UIColor *rgb(CGFloat r,CGFloat g,CGFloat b){return [UIColor colorWithRed:
         CGRect f=v.frame;f.size.width=usable;v.frame=f;
     }
     CGRect s=self.currentSlider.frame;s.size.width=usable;self.currentSlider.frame=s;
-    self.scroll.contentSize=CGSizeMake(w,1175);
+    self.scroll.contentSize=CGSizeMake(w,1130);
 }
 - (NSInteger)selectedMA{return (NSInteger)(roundf(self.currentSlider.value/100.0f)*100);}
 - (void)sliderChanged:(id)sender{
     NSInteger ma=[self selectedMA];
     self.capLabel.text=[NSString stringWithFormat:@"Selected: %ld mA",(long)ma];
-    [self updateEstimate:nil];(void)sender;
+    (void)sender;
 }
 - (void)sliderDone:(id)sender{
     NSInteger ma=[self selectedMA];self.currentSlider.value=ma;
     [[NSUserDefaults standardUserDefaults]setInteger:ma forKey:@"selectedCurrent"];
     if(self.enableSwitch.isOn)[self applyTapped:sender];
-}
-- (void)updateEstimate:(NSDictionary*)d{
-    NSNumber *mv=[d[@"usb_mv"] isKindOfClass:NSNumber.class]?d[@"usb_mv"] : nil;
-    if(mv){self.estimateLabel.text=[NSString stringWithFormat:@"Estimated cap: %.2f W at %.2f V",([self selectedMA]*mv.doubleValue)/1000000.0,mv.doubleValue/1000.0];}
-    else {self.estimateLabel.text=[NSString stringWithFormat:@"Estimated cap at 5V: %.2f W (estimate)",[self selectedMA]*0.005];}
 }
 - (void)presentStatus:(NSString*)message ok:(BOOL)ok{
     self.statusLabel.text=message;
@@ -147,15 +141,18 @@ static UIColor *rgb(CGFloat r,CGFloat g,CGFloat b){return [UIColor colorWithRed:
     NSData *data=[raw dataUsingEncoding:NSUTF8StringEncoding];
     NSDictionary *d=data?[NSJSONSerialization JSONObjectWithData:data options:0 error:nil]:nil;
     if(![d isKindOfClass:NSDictionary.class]){[self presentStatus:@"Controller offline: open diagnostics if needed." ok:NO];return;}
-    self.chargerLabel.text=[NSString stringWithFormat:@"Charger reported rating: %@",watts(d,@"adapter_w",1)];
-    self.inputLabel.text=[NSString stringWithFormat:@"Live system input: %@",watts(d,@"system_mw",1000)];
+    self.chargerLabel.text=[NSString stringWithFormat:@"Charger Rating: %@",watts(d,@"adapter_w",1)];
+    NSNumber *railMA=[d[@"system_ma"] isKindOfClass:NSNumber.class]?d[@"system_ma"]:nil;
+    NSString *railMAtext=railMA?[NSString stringWithFormat:@"%.0f mA",railMA.doubleValue]:@"— mA";
+    self.inputLabel.text=[NSString stringWithFormat:@"Input Rail: %@  |  %@",watts(d,@"system_mw",1000),railMAtext];
     NSNumber *mv=[d[@"battery_mv"] isKindOfClass:NSNumber.class]?d[@"battery_mv"]:nil;
     NSNumber *ma=[d[@"battery_ma"] isKindOfClass:NSNumber.class]?d[@"battery_ma"]:nil;
-    self.batteryLabel.text=mv&&ma?[NSString stringWithFormat:@"Battery charging: %.2f W",mv.doubleValue*ma.doubleValue/1000000.0]:@"Battery charging: —";
+    NSString *batteryW=mv&&ma?[NSString stringWithFormat:@"%.2f W",mv.doubleValue*ma.doubleValue/1000000.0]:@"— W";
+    NSString *batteryMA=ma?[NSString stringWithFormat:@"%.0f mA",ma.doubleValue]:@"— mA";
+    self.batteryLabel.text=[NSString stringWithFormat:@"Battery: %@  |  %@",batteryW,batteryMA];
     self.batteryPctLabel.text=[NSString stringWithFormat:@"Battery: %@%%   |   Charging: %@",reading(d,@"battery_percent",@""),[d[@"charging"] respondsToSelector:@selector(intValue)]&&[d[@"charging"]intValue]==1?@"Yes":@"No"];
     self.usbLabel.text=[NSString stringWithFormat:@"USB voltage: %@",[d[@"usb_mv"] isKindOfClass:NSNumber.class]?[NSString stringWithFormat:@"%.2f V",[d[@"usb_mv"]doubleValue]/1000.0]:@"—"];
     self.effectiveLabel.text=[NSString stringWithFormat:@"Effective USB current cap: %@ mA",reading(d,@"usb_ma",@"")];
-    [self updateEstimate:d];
     BOOL enabled=[d[@"enabled"] respondsToSelector:@selector(boolValue)]&&[d[@"enabled"] boolValue];
     [self.enableSwitch setOn:enabled animated:NO];
     NSString *msg=[d[@"message"] isKindOfClass:NSString.class]?d[@"message"]:@"";
