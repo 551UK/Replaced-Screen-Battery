@@ -162,7 +162,7 @@ static UIColor *rgb(CGFloat r,CGFloat g,CGFloat b){return [UIColor colorWithRed:
     if(self.busy)return;self.busy=YES;[self presentStatus:[NSString stringWithFormat:@"%@…",name] ok:YES];
     NSString *raw=request(cmd);
     BOOL ok=[raw hasPrefix:@"OK "];NSString *msg=[raw stringByTrimmingCharactersInSet:NSCharacterSet.whitespaceAndNewlineCharacterSet];
-    self.busy=NO;[self refresh:nil];[self presentStatus:ok?[NSString stringWithFormat:@"%@ applied",name]:[NSString stringWithFormat:@"Failed: %@",msg] ok:ok];
+    self.busy=NO;[self refresh:nil];[self presentStatus:ok?([cmd isEqualToString:@"RESTORE"]?@"USB limit released. Check Input Rail: actual recovery is unverified.":[NSString stringWithFormat:@"%@ applied",name]):[NSString stringWithFormat:@"Failed: %@",msg] ok:ok];
     if(!ok)self.enableSwitch.on=[cmd hasPrefix:@"ENABLE"]?NO:self.enableSwitch.on;
 }
 - (void)toggleChanged:(UISwitch*)sender{
