@@ -23,7 +23,7 @@ include $(THEOS_MAKE_PATH)/tweak.mk
 BUNDLE_NAME = ReplacedScreenBatteryPrefs
 ReplacedScreenBatteryPrefs_FILES = RSBRootListController.m
 ReplacedScreenBatteryPrefs_CFLAGS = -fobjc-arc -Wall
-ReplacedScreenBatteryPrefs_FRAMEWORKS = UIKit
+ReplacedScreenBatteryPrefs_FRAMEWORKS = UIKit QuartzCore
 ReplacedScreenBatteryPrefs_PRIVATE_FRAMEWORKS = Preferences
 ReplacedScreenBatteryPrefs_INSTALL_PATH = /Library/PreferenceBundles
 

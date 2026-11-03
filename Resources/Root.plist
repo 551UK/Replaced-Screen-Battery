@@ -25,6 +25,19 @@
 		<string>com.551.replacedscreenbattery/preferences.changed</string>
 	</dict>
 	<dict>
+		<key>cell</key><string>PSGroupCell</string>
+		<key>label</key><string>Battery Health Display</string>
+		<key>footerText</key><string>On: readings above 100% display as 100%. Off: show the uncapped BMS-reported health, such as 110%. Reopen Battery Health &amp; Charging after changing this option.</string>
+	</dict>
+	<dict>
+		<key>cell</key><string>PSSwitchCell</string>
+		<key>label</key><string>Cap Battery Health at 100%</string>
+		<key>defaults</key><string>com.551.replacedscreenbattery</string>
+		<key>key</key><string>capBatteryHealth</string>
+		<key>default</key><true/>
+		<key>PostNotification</key><string>com.551.replacedscreenbattery/preferences.changed</string>
+	</dict>
+	<dict>
 		<key>cell</key>
 		<string>PSButtonCell</string>
 		<key>label</key>

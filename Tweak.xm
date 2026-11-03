@@ -11,6 +11,7 @@
 // iOS 15-16, with additional iOS 18 Parts & Service History hooks.
 
 static BOOL RSBEnabled = YES;
+static BOOL RSBCapBatteryHealth = YES;
 static BOOL RSBSystemHealthHooksInitialized = NO;
 static BOOL RSBFollowUpHooksInitialized = NO;
 static BOOL RSBBatteryUIHooksInitialized = NO;
@@ -27,6 +28,8 @@ static void RSBLoadPreferences(void) {
             @"/var/mobile/Library/Preferences/com.551.replacedscreenbattery.plist"];
         id value = preferences[@"enabled"];
         RSBEnabled = value ? [value boolValue] : YES;
+        id capValue = preferences[@"capBatteryHealth"];
+        RSBCapBatteryHealth = capValue ? [capValue boolValue] : YES;
     }
 }
 
@@ -133,8 +136,8 @@ static NSInteger RSBReplacementBatteryHealthPercent(void) {
     }
 
     NSInteger roundedHealth = (NSInteger)llround(health);
-    // Apple's Battery Health UI does not display values above 100%.
-    if (roundedHealth > 100) roundedHealth = 100;
+    // Preserve the existing cap unless the user chooses the uncapped reading.
+    if (RSBCapBatteryHealth && roundedHealth > 100) roundedHealth = 100;
     if (roundedHealth < 0) roundedHealth = 0;
     return roundedHealth;
 }

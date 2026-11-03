@@ -1,6 +1,7 @@
 #import "RSBRootListController.h"
 #import <Preferences/PSSpecifier.h>
 #import <UIKit/UIKit.h>
+#import <QuartzCore/QuartzCore.h>
 #import <errno.h>
 #import <notify.h>
 #import <spawn.h>
@@ -47,7 +48,17 @@ static void RSBExitSettingsSoon(void) {
     });
 }
 
+@interface RSBRootListController ()
+@property (nonatomic, strong) UIView *headerCard;
+@property (nonatomic, strong) CAGradientLayer *headerGradient;
+@end
+
 @implementation RSBRootListController
+
+- (UITableViewStyle)tableViewStyle {
+    return UITableViewStyleInsetGrouped;
+}
+
 
 - (NSArray *)specifiers {
     if (!_specifiers) {
@@ -55,7 +66,7 @@ static void RSBExitSettingsSoon(void) {
 
         PSSpecifier *warningGroup = [PSSpecifier groupSpecifierWithName:@"Warning Control"];
         [warningGroup setProperty:
-            @"When enabled, replaced display and battery messages stay hidden, Battery Health & Charging remains visible, and an unverified replacement battery can show its BMS-reported Maximum Capacity. Use Respring after changing this switch."
+            @"Hide replaced-part warnings and show battery health for an unverified replacement battery. Respring after changing this switch."
                            forKey:@"footerText"];
         [items addObject:warningGroup];
 
@@ -73,6 +84,28 @@ static void RSBExitSettingsSoon(void) {
         [toggle setProperty:@"com.551.replacedscreenbattery/preferences.changed"
                      forKey:@"PostNotification"];
         [items addObject:toggle];
+
+        PSSpecifier *healthGroup = [PSSpecifier groupSpecifierWithName:@"Battery Health Display"];
+        [healthGroup setProperty:
+            @"On: cap readings above 100%. Off: show the reported value, such as 110%. Lower readings stay unchanged. Requires Hide Parts Warning. Reopen Battery Health & Charging to refresh."
+                         forKey:@"footerText"];
+        [items addObject:healthGroup];
+
+        PSSpecifier *capToggle = [PSSpecifier
+            preferenceSpecifierNamed:@"Cap Battery Health at 100%"
+            target:self
+            set:@selector(setPreferenceValue:specifier:)
+            get:@selector(readPreferenceValue:)
+            detail:nil
+            cell:PSSwitchCell
+            edit:nil];
+        [capToggle setProperty:@"com.551.replacedscreenbattery" forKey:@"defaults"];
+        [capToggle setProperty:@"capBatteryHealth" forKey:@"key"];
+        [capToggle setProperty:@YES forKey:@"default"];
+        [capToggle setProperty:@"com.551.replacedscreenbattery/preferences.changed"
+                        forKey:@"PostNotification"];
+        [items addObject:capToggle];
+        [items addObject:[PSSpecifier emptyGroupSpecifier]];
 
         PSSpecifier *respring = [PSSpecifier
             preferenceSpecifierNamed:@"Respring"
@@ -110,37 +143,111 @@ static void RSBExitSettingsSoon(void) {
 - (void)viewDidLoad {
     [super viewDidLoad];
     self.title = @"Replaced Screen & Battery";
+    UITableView *table = self.table;
+    if (!table) return;
+    table.backgroundColor = UIColor.systemGroupedBackgroundColor;
+
+    UIView *header = [[UIView alloc] initWithFrame:CGRectMake(0, 0, CGRectGetWidth(table.bounds), 156)];
+    header.autoresizingMask = UIViewAutoresizingFlexibleWidth;
+    UIView *card = [[UIView alloc] initWithFrame:CGRectMake(16, 16, MAX(0, CGRectGetWidth(header.bounds) - 32), 126)];
+    card.autoresizingMask = UIViewAutoresizingFlexibleWidth;
+    card.layer.cornerRadius = 19;
+    card.layer.masksToBounds = YES;
+    [header addSubview:card];
+    self.headerCard = card;
+
+    CAGradientLayer *gradient = [CAGradientLayer layer];
+    gradient.colors = @[
+        (__bridge id)[UIColor colorWithRed:0.11 green:0.17 blue:0.25 alpha:1].CGColor,
+        (__bridge id)[UIColor colorWithRed:0.16 green:0.30 blue:0.34 alpha:1].CGColor
+    ];
+    gradient.startPoint = CGPointMake(0, 0);
+    gradient.endPoint = CGPointMake(1, 1);
+    gradient.frame = card.bounds;
+    [card.layer insertSublayer:gradient atIndex:0];
+    self.headerGradient = gradient;
+
+    NSBundle *bundle = [NSBundle bundleForClass:self.class];
+    UIImage *icon = [UIImage imageNamed:@"icon" inBundle:bundle compatibleWithTraitCollection:nil];
+    UIImageView *emblem = [[UIImageView alloc] initWithImage:icon ?: [UIImage systemImageNamed:@"battery.100"]];
+    emblem.translatesAutoresizingMaskIntoConstraints = NO;
+    emblem.contentMode = UIViewContentModeScaleAspectFit;
+    emblem.tintColor = UIColor.systemGreenColor;
+    emblem.layer.cornerRadius = 13;
+    emblem.clipsToBounds = YES;
+    emblem.isAccessibilityElement = NO;
+    [card addSubview:emblem];
+
+    UILabel *heading = [UILabel new];
+    heading.text = @"Replaced Screen\n& Battery";
+    heading.font = [UIFont systemFontOfSize:22 weight:UIFontWeightBold];
+    heading.textColor = UIColor.whiteColor;
+    heading.numberOfLines = 2;
+    heading.adjustsFontSizeToFitWidth = YES;
+    heading.minimumScaleFactor = 0.75;
+    UILabel *subtitle = [UILabel new];
+    subtitle.text = @"Parts warnings. Battery health.";
+    subtitle.font = [UIFont systemFontOfSize:12 weight:UIFontWeightMedium];
+    subtitle.textColor = [UIColor colorWithWhite:1 alpha:0.7];
+    subtitle.numberOfLines = 2;
+    UIStackView *labels = [[UIStackView alloc] initWithArrangedSubviews:@[heading, subtitle]];
+    labels.axis = UILayoutConstraintAxisVertical;
+    labels.spacing = 6;
+    labels.translatesAutoresizingMaskIntoConstraints = NO;
+    [card addSubview:labels];
+    [NSLayoutConstraint activateConstraints:@[
+        [emblem.leadingAnchor constraintEqualToAnchor:card.leadingAnchor constant:18],
+        [emblem.centerYAnchor constraintEqualToAnchor:card.centerYAnchor],
+        [emblem.widthAnchor constraintEqualToConstant:54],
+        [emblem.heightAnchor constraintEqualToConstant:54],
+        [labels.leadingAnchor constraintEqualToAnchor:emblem.trailingAnchor constant:15],
+        [labels.trailingAnchor constraintEqualToAnchor:card.trailingAnchor constant:-16],
+        [labels.centerYAnchor constraintEqualToAnchor:card.centerYAnchor],
+        [labels.topAnchor constraintGreaterThanOrEqualToAnchor:card.topAnchor constant:12],
+        [labels.bottomAnchor constraintLessThanOrEqualToAnchor:card.bottomAnchor constant:-12]
+    ]];
+    table.tableHeaderView = header;
+}
+
+- (void)viewDidLayoutSubviews {
+    [super viewDidLayoutSubviews];
+    [CATransaction begin];
+    [CATransaction setDisableActions:YES];
+    self.headerGradient.frame = self.headerCard.bounds;
+    [CATransaction commit];
 }
 
 - (void)setPreferenceValue:(id)value specifier:(PSSpecifier *)specifier {
-    (void)specifier;
-    NSNumber *enabled = @([value boolValue]);
+    NSString *key = [specifier propertyForKey:@"key"];
+    if (!key.length) return;
+    NSNumber *storedValue = @([value boolValue]);
 
     // Keep cfprefsd's cache and the exact file read by the injected tweak in
     // agreement. Synchronize first, then verify the on-disk value explicitly
     // before notifying Preferences and SpringBoard to reload it.
-    CFPreferencesSetAppValue(CFSTR("enabled"),
-                             (__bridge CFPropertyListRef)enabled,
+    CFPreferencesSetAppValue((__bridge CFStringRef)key,
+                             (__bridge CFPropertyListRef)storedValue,
                              RSBPreferencesDomain);
     CFPreferencesAppSynchronize(RSBPreferencesDomain);
 
     NSMutableDictionary *preferences =
         [[NSDictionary dictionaryWithContentsOfFile:RSBPreferencesPath] mutableCopy];
     if (!preferences) preferences = [NSMutableDictionary dictionary];
-    preferences[@"enabled"] = enabled;
+    preferences[key] = storedValue;
     [preferences writeToFile:RSBPreferencesPath atomically:YES];
 
     notify_post("com.551.replacedscreenbattery/preferences.changed");
 }
 
 - (id)readPreferenceValue:(PSSpecifier *)specifier {
-    (void)specifier;
-    id fileValue = [NSDictionary dictionaryWithContentsOfFile:RSBPreferencesPath][@"enabled"];
+    NSString *key = [specifier propertyForKey:@"key"];
+    if (!key.length) return [specifier propertyForKey:@"default"];
+    id fileValue = [NSDictionary dictionaryWithContentsOfFile:RSBPreferencesPath][key];
     if (fileValue) return @([fileValue boolValue]);
 
-    CFPropertyListRef value = CFPreferencesCopyAppValue(CFSTR("enabled"),
+    CFPropertyListRef value = CFPreferencesCopyAppValue((__bridge CFStringRef)key,
                                                         RSBPreferencesDomain);
-    return value ? CFBridgingRelease(value) : @YES;
+    return value ? CFBridgingRelease(value) : [specifier propertyForKey:@"default"];
 }
 
 - (void)respring {
