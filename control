@@ -1,6 +1,6 @@
 Package: com.551.replacedscreenbattery
 Name: Replaced Screen & Battery
-Version: 1.0.16
+Version: 1.0.17
 Architecture: iphoneos-arm64
 Description: Hides replaced screen/battery warnings while keeping Battery Health available and showing BMS-reported maximum capacity for unverified replacement batteries.
  Keeps the existing iOS 15-16 behaviour and adds iOS 18 hooks to remove the
