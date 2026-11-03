@@ -74,7 +74,7 @@ jobs:
       - name: Remove older GitHub Releases
         env:
           GH_TOKEN: ${{ github.token }}
-          CURRENT_TAG: v1.0.18
+          CURRENT_TAG: v1.0.19
         run: |
           gh api --paginate "repos/${{ github.repository }}/releases" \
             --jq ".[] | select(.tag_name != \"${CURRENT_TAG}\") | .id" |
@@ -86,8 +86,8 @@ jobs:
       - name: Publish GitHub Release
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: v1.0.18
-          name: Replaced Screen & Battery v1.0.18
+          tag_name: v1.0.19
+          name: Replaced Screen & Battery v1.0.19
           body: ""
           files: packages/*.deb
           make_latest: true
