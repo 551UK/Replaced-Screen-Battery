@@ -87,7 +87,7 @@ static void RSBExitSettingsSoon(void) {
 
         PSSpecifier *healthGroup = [PSSpecifier groupSpecifierWithName:@"Battery Health Display"];
         [healthGroup setProperty:
-            @"Higher-mAh replacement batteries can report a Full Charge Capacity above their Design Capacity, making calculated health exceed 100%. On: cap the displayed health at 100% (110% becomes 100%). Off: show the uncapped value. Display only; charging is unchanged. Requires Hide Parts Warning. Reopen Battery Health & Charging to refresh."
+            @"Higher-mAh replacement batteries can report a Full Charge Capacity above their Design Capacity, making calculated health exceed 100%. On: cap the displayed health at 100% (110% becomes 100%). Off: show the uncapped value."
                          forKey:@"footerText"];
         [items addObject:healthGroup];
 

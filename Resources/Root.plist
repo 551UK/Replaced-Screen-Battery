@@ -27,7 +27,7 @@
 	<dict>
 		<key>cell</key><string>PSGroupCell</string>
 		<key>label</key><string>Battery Health Display</string>
-		<key>footerText</key><string>Higher-mAh replacement batteries can report a Full Charge Capacity above their Design Capacity, making calculated health exceed 100%. On: cap the displayed health at 100% (110% becomes 100%). Off: show the uncapped value. Display only; charging is unchanged. Requires Hide Parts Warning. Reopen Battery Health &amp; Charging to refresh.</string>
+		<key>footerText</key><string>Higher-mAh replacement batteries can report a Full Charge Capacity above their Design Capacity, making calculated health exceed 100%. On: cap the displayed health at 100% (110% becomes 100%). Off: show the uncapped value.</string>
 	</dict>
 	<dict>
 		<key>cell</key><string>PSSwitchCell</string>
